@@ -1,0 +1,26 @@
+# Shared stage-pooling defaults.
+pooling: focus_refine
+pooling_stage: l2
+pooling_config: ${${pooling}}
+
+average_pool:
+  method: average_pool
+  stage: ${pooling_stage}
+  query_cond: [eef, gripper]
+  kwargs: {}
+
+focus_refine:
+  method: focus_refine
+  stage: ${pooling_stage}
+  query_cond: [eef, gripper]
+  kwargs:
+    iters: 3
+    heads: 4
+    head_dim: 128
+
+spatial_softmax:
+  method: spatial_softmax
+  stage: ${pooling_stage}
+  query_cond: [eef, gripper]
+  kwargs:
+    num_points: 32

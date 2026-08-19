@@ -1,0 +1,165 @@
+defaults:
+  - task: mimicgen_policy
+  - _self_
+  - override hydra/job_logging: disabled
+
+name: rvt2_policy
+_target_: focuspool.workspace.train_focus_policy_workspace.TrainFocusPolicyWorkspace
+
+seed: 0
+batch_size: 128
+enc_n_hidden: 128
+action_rep: absolute
+eih_mode: pass_through
+shuffle_table_texture: false
+cache_dir: null
+
+rvt2_obs_encoder:
+  _target_: focuspool.model.encoder.focus_conditioned_encoder.FocusConditionedObsEncoder
+  n_hidden: ${enc_n_hidden}
+  resnet_pretrained_imagenet: true
+  focus_view_transform:
+    vit_in: 224
+    low_res: 84
+    out_res: 76
+    views:
+      agentview:
+        mode: rvt2_heatmap_crop
+      eye_in_hand:
+        mode: ${eih_mode}
+    rvt2_heatmap:
+      checkpoint: .weights/mimicgen.rvt2_heatmap.ckpt
+    overlay:
+      prob: 0.0
+      noise_std: 0.05
+      alpha_min: 0.3
+      alpha_max: 0.8
+      warmup_steps: 2500
+      background_path: null
+    crop:
+      center_jitter: 0.05
+      scale_jitter: 0.05
+      box_margin_px: 0
+
+shape_meta: ${task.shape_meta}
+task_name: square_d0
+n_demo: 200
+horizon: 16
+n_obs_steps: 2
+n_action_steps: 8
+n_latency_steps: 0
+dataset_obs_steps: ${n_obs_steps}
+past_action_visible: false
+obs_as_global_cond: true
+dataset: focuspool.dataset.mimicgen_dataset.MimicGenDataset
+dataset_path: datasets/mimicgen/${task_name}/${task_name}.hdf5
+n_envs: 25
+env_name: null
+
+policy:
+  _target_: focuspool.policy.diffusion_policy.DiffusionPolicy
+  shape_meta: ${shape_meta}
+  action_rep: ${action_rep}
+
+  noise_scheduler:
+    _target_: diffusers.schedulers.scheduling_ddpm.DDPMScheduler
+    num_train_timesteps: 100
+    beta_start: 0.0001
+    beta_end: 0.02
+    beta_schedule: squaredcos_cap_v2
+    variance_type: fixed_small
+    clip_sample: true
+    prediction_type: epsilon
+
+  obs_encoder: ${rvt2_obs_encoder}
+
+  enc_n_hidden: ${enc_n_hidden}
+  horizon: ${horizon}
+  n_action_steps: ${add_int:${n_action_steps},${n_latency_steps}}
+  n_obs_steps: ${n_obs_steps}
+  num_inference_steps: 100
+  obs_as_global_cond: ${obs_as_global_cond}
+  diffusion_step_embed_dim: 128
+  down_dims: [512, 1024, 2048]
+  kernel_size: 5
+  n_groups: 8
+  cond_predict_scale: true
+
+ema:
+  _target_: focuspool.model.diffusion.ema_model.EMAModel
+  update_after_step: 0
+  inv_gamma: 1.0
+  power: 0.75
+  min_value: 0.0
+  max_value: 0.9999
+
+dataloader:
+  batch_size: ${batch_size}
+  num_workers: 8
+  shuffle: true
+  pin_memory: true
+  persistent_workers: true
+
+val_dataloader:
+  batch_size: ${batch_size}
+  num_workers: 8
+  shuffle: false
+  pin_memory: true
+  persistent_workers: true
+
+optimizer:
+  _target_: torch.optim.AdamW
+  lr: 1.0e-4
+  betas: [0.95, 0.999]
+  eps: 1.0e-8
+  weight_decay: 1.0e-6
+
+training:
+  device: cuda:0
+  seed: ${seed}
+  debug: false
+  resume: true
+  lr_scheduler: cosine
+  lr_warmup_steps: 500
+  num_epochs: ${divide:50000,${n_demo}}
+  gradient_accumulate_every: 1
+  use_ema: true
+  rollout_every: ${divide:1000,${n_demo}}
+  checkpoint_every: ${divide:1000,${n_demo}}
+  val_every: 10
+  sample_every: 10
+  max_train_steps: null
+  max_val_steps: null
+  tqdm_interval_sec: 1.0
+
+exp_name: "${n_demo}d_${action_rep}_rvt2_eih-${eih_mode}_s${seed}"
+
+logging:
+  project: focuspool
+  resume: true
+  id: null
+  name: ${name}_${exp_name}
+  group: ${task_name}/rvt2_policy
+  job_type: train_policy
+  tags:
+    - task=${task_name}
+    - stage=policy
+    - model=rvt2_policy
+    - demonstrations=${n_demo}
+    - seed=${seed}
+    - eye_in_hand_mode=${eih_mode}
+
+checkpoint:
+  topk:
+    monitor_key: test_mean_score
+    mode: max
+    k: 0
+    format_str: 'epoch={epoch:04d}-test_mean_score={test_mean_score:.3f}.ckpt'
+  save_last_ckpt: true
+  save_topk_full_ckpt: false
+
+hydra:
+  job:
+    override_dirname: ${name}
+  run:
+    dir: experiments/${task_name}/${name}/${exp_name}

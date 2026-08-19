@@ -1,0 +1,58 @@
+name: mimicgen_policy
+
+shape_meta: &shape_meta
+  obs:
+    agentview_image:
+      shape: [3, 84, 84]
+      type: rgb
+    robot0_eye_in_hand_image:
+      shape: [3, 84, 84]
+      type: rgb
+    robot0_eef_pos:
+      shape: [3]
+    robot0_eef_rot:
+      shape: [9]
+    robot0_gripper_qpos:
+      shape: [2]
+  action:
+    shape: [10]
+
+env_runner:
+  _target_: focuspool.env_runner.focuspool_robomimic_image_runner.FocusPoolRobomimicImageRunner
+  env_name: ${env_name}
+  dataset_path: ${dataset_path}
+  cache_dir: ${cache_dir}
+  shape_meta: *shape_meta
+  n_test: 50
+  n_test_vis: 3
+  test_start_seed: 100000
+  max_steps: ${get_max_steps:${task_name}}
+  n_obs_steps: ${n_obs_steps}
+  n_action_steps: ${n_action_steps}
+  render_obs_key: agentview_image
+  fps: 10
+  crf: 22
+  past_action: ${past_action_visible}
+  tqdm_interval_sec: 1.0
+  n_envs: ${n_envs}
+  action_rep: ${action_rep}
+  shuffle_table_texture: ${shuffle_table_texture}
+  strict_task_success: true
+  enable_oracle_subtask_info: true
+  oracle_projection_camera: agentview
+  enable_oracle_video_overlay: false
+  oracle_overlay_zoom: 4.0
+  enable_prediction_video_overlay: true
+
+dataset:
+  _target_: ${dataset}
+  n_demo: ${n_demo}
+  shape_meta: *shape_meta
+  dataset_path: ${dataset_path}
+  horizon: ${horizon}
+  n_obs_steps: ${dataset_obs_steps}
+  action_rep: ${action_rep}
+  val_ratio: 0.02
+  image_size: null
+  cache_dir: ${cache_dir}
+  lmdb_readahead: false

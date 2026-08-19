@@ -1,0 +1,27 @@
+backbone:
+  name: DINOv3
+  ckpt_path: .weights/dinov3_vits16plus.pth
+
+rvt2_heatmap:
+  camera: agentview
+  # dino uses frozen DINOv3 patch tokens; conv uses a trainable MVT-style patch stem.
+  patch_backbone: dino
+  conv_patch_dim: 384
+  dino_ckpt: ${backbone.ckpt_path}
+  dino_image_size: 224
+  patch_size: 16
+  hidden_dim: 256
+  task_emb_dim: 512
+  query_hidden_mult: 4
+  proprio_mode: gripper_only
+  proprio_dim: 1
+  language_seq_len: 77
+  transformer_depth: 4
+  transformer_heads: 8
+  transformer_dropout: 0.1
+  target_sigma_patches: 0.75
+  joint_vel_atol: 0.1
+  stopped_buffer_len: 4
+  include_final: true
+  mute_initial_gripper_open: true
+  keypoint_box_zoom: 4.0
