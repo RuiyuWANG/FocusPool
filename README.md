@@ -1,6 +1,6 @@
 # FocusPool
 
-Official code release for FocusPool.
+Official code release for FocusPool, accepted to CoRL 2026.
 
 <table>
   <tr>
@@ -9,7 +9,7 @@ Official code release for FocusPool.
         <img src="media/method.png" alt="FocusPool method overview" width="100%">
       </a>
     </td>
-    <td rowspan="2" width="4%" align="center"><strong>-&gt;</strong></td>
+    <td rowspan="2" width="4%" align="center"><strong>➜</strong></td>
     <td width="16%" align="center">
       <img src="media/three_piece.gif" alt="Three-piece assembly rollout" width="100%">
     </td>
@@ -215,6 +215,19 @@ rerender-dataset
 playback-dataset
 merge-datasets
 setup-assets
+```
+
+## Citation
+
+If you use this code, please cite:
+
+```bibtex
+@inproceedings{wang2026focuspool,
+  title = {Localized Visual Feature Aggregation via Focus Pooling for Visuomotor Policies},
+  author = {Wang, Ruiyu and Zhuang, Zheyu and Kragic, Danica and Pokorny, Florian T.},
+  booktitle = {Conference on Robot Learning (CoRL)},
+  year = {2026}
+}
 ```
 
 ## Acknowledgements
